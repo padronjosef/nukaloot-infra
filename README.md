@@ -50,8 +50,13 @@ docker compose up --build
 
 ## Related Repos
 
-- [game-price-api](https://github.com/jose-padron/game-price-api) — Backend (NestJS, TypeORM, Playwright)
-- [game-price-web](https://github.com/jose-padron/game-price-web) — Frontend (Next.js, React, Tailwind)
+This project is part of a multi-repo setup. All three repos are needed to run the full stack:
+
+| Repo | Description |
+|------|-------------|
+| [game-price-api](https://github.com/padronjosef/game-price-api) | Backend API (NestJS, TypeORM, Playwright) |
+| [game-price-web](https://github.com/padronjosef/game-price-web) | Frontend (Next.js, React, Tailwind) |
+| **game-price-infra** (this repo) | Docker Compose and infrastructure |
 
 ## Future
 
