@@ -1,0 +1,20 @@
+name: Deploy Infra
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docker-compose.prod.yml"
+      - "nginx/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: /opt/game-price-finder/game-price-infra/terraform/scripts/deploy.sh infra
