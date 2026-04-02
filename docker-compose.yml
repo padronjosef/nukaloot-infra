@@ -1,0 +1,59 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: game_prices
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: ../game-price-api
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    volumes:
+      - ../game-price-api/src:/app/src
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: game_prices
+      CORS_ORIGIN: "*"
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../game-price-web
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    volumes:
+      - ../game-price-web/src:/app/src
+      - ../game-price-web/public:/app/public
+      - ../game-price-web/next.config.ts:/app/next.config.ts
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3002/api
+      PORT: "3003"
+      WATCHPACK_POLLING: "true"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
