@@ -4,14 +4,8 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "db_password" {
-  description = "Password for the RDS PostgreSQL database"
-  type        = string
-  sensitive   = true
-}
-
 variable "duckdns_token" {
-  description = "DuckDNS token for dynamic DNS"
+  description = "DuckDNS token — stored in Secrets Manager, never in plain text"
   type        = string
   sensitive   = true
 }

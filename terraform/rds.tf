@@ -7,6 +7,45 @@ resource "aws_db_subnet_group" "default" {
   }
 }
 
+# Generate a random password and store it in Secrets Manager
+resource "random_password" "db" {
+  length  = 32
+  special = false # RDS doesn't like some special chars
+}
+
+resource "aws_secretsmanager_secret" "db_password" {
+  name                    = "game-price/db-password"
+  description             = "RDS PostgreSQL password for game-price-db"
+  recovery_window_in_days = 7
+}
+
+resource "aws_secretsmanager_secret_version" "db_password" {
+  secret_id     = aws_secretsmanager_secret.db_password.id
+  secret_string = random_password.db.result
+}
+
+resource "aws_secretsmanager_secret" "github_deploy_key" {
+  name                    = "game-price/github-deploy-key"
+  description             = "SSH private key for GitHub deploy access"
+  recovery_window_in_days = 7
+}
+
+resource "aws_secretsmanager_secret_version" "github_deploy_key" {
+  secret_id     = aws_secretsmanager_secret.github_deploy_key.id
+  secret_string = tls_private_key.github_deploy.private_key_openssh
+}
+
+resource "aws_secretsmanager_secret" "duckdns_token" {
+  name                    = "game-price/duckdns-token"
+  description             = "DuckDNS token for dynamic DNS"
+  recovery_window_in_days = 7
+}
+
+resource "aws_secretsmanager_secret_version" "duckdns_token" {
+  secret_id     = aws_secretsmanager_secret.duckdns_token.id
+  secret_string = var.duckdns_token
+}
+
 resource "aws_db_instance" "postgres" {
   identifier = "game-price-db"
 
@@ -19,7 +58,7 @@ resource "aws_db_instance" "postgres" {
 
   db_name  = "game_prices"
   username = "postgres"
-  password = var.db_password
+  password = random_password.db.result
 
   db_subnet_group_name   = aws_db_subnet_group.default.name
   vpc_security_group_ids = [aws_security_group.rds.id]

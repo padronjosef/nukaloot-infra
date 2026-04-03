@@ -4,8 +4,11 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - letsencrypt:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot:ro
     depends_on:
       - web
 
@@ -28,3 +31,17 @@ services:
       - .env
     environment:
       PORT: "3000"
+
+volumes:
+  letsencrypt:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /etc/letsencrypt
+  certbot-webroot:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/www/certbot

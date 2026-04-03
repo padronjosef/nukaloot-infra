@@ -52,6 +52,7 @@ Infrastructure and orchestration for the Game Price Finder project.
 | RDS | db.t3.micro PostgreSQL 16 | Free tier (750 hrs/month, 12 months) |
 | Elastic IP | 1 | Free while instance is running |
 | S3 | Terraform state bucket (versioned) | Free tier |
+| Secrets Manager | 3 secrets (DB password, DuckDNS token, deploy key) | Free tier (10,000 API calls/month) |
 | Domain | DuckDNS subdomain | Free |
 
 ### What Terraform creates
@@ -61,7 +62,14 @@ Infrastructure and orchestration for the Game Price Finder project.
 - Security group for EC2 (ports 80 and 22 only)
 - Security group for RDS (port 5432 from EC2 only)
 - Elastic IP attached to the EC2 instance
-- SSH deploy key for GitHub repo access
+- SSH key for GitHub repo access
+- IAM role for EC2 with Secrets Manager read access
+- **AWS Secrets Manager** secrets for:
+  - `game-price/db-password` — auto-generated 32-char PostgreSQL password
+  - `game-price/duckdns-token` — DuckDNS API token
+  - `game-price/github-deploy-key` — SSH private key for GitHub access
+
+No secrets are hardcoded in the EC2 instance. All sensitive values are fetched at boot time from Secrets Manager via IAM role.
 
 ---
 
@@ -83,36 +91,44 @@ cd terraform
 ./setup.sh
 ```
 
-### Step 2: Deploy infrastructure
+### Step 2: Create `terraform.tfvars`
+
+Create a `terraform.tfvars` file (already in `.gitignore`):
+
+```hcl
+duckdns_domain = "game-price"
+duckdns_token  = "your-duckdns-token"
+```
+
+### Step 3: Deploy infrastructure
 
 ```bash
 terraform init
-terraform apply
+terraform apply -var="ssh_public_key_path=/path/to/your/key.pub"
 ```
 
-Terraform will ask for:
-- `db_password` — choose a strong password for PostgreSQL
-- `duckdns_token` — your DuckDNS token
-- `duckdns_domain` — your chosen subdomain (e.g. `game-price` for `game-price.duckdns.org`)
+The database password is auto-generated and stored in AWS Secrets Manager. No need to set it manually.
 
-### Step 3: Add deploy key to GitHub repos
+### Step 4: Add SSH key to GitHub
 
-After `terraform apply`, copy the `github_deploy_public_key` from the output and add it as a **read-only deploy key** in each repo:
+After `terraform apply`, copy the `github_deploy_public_key` from the output and add it as an **SSH key** on your GitHub account:
 
-1. Go to `github.com/padronjosef/game-price-api` → Settings → Deploy keys → Add
-2. Go to `github.com/padronjosef/game-price-web` → Settings → Deploy keys → Add
-3. Go to `github.com/padronjosef/game-price-infra` → Settings → Deploy keys → Add
+1. Go to https://github.com/settings/keys
+2. Click "New SSH key"
+3. Paste the key
 
-### Step 4: Configure CI/CD
+This gives the EC2 instance read access to all your repos.
 
-Add these secrets to **both** `game-price-api` and `game-price-web` repos (Settings → Secrets → Actions):
+### Step 5: Configure CI/CD
+
+Add these secrets to **all three** repos (Settings → Secrets → Actions):
 
 | Secret | Value |
 |--------|-------|
 | `EC2_HOST` | The `ec2_public_ip` from Terraform output |
 | `EC2_SSH_KEY` | Your private SSH key (the one matching `ssh_public_key_path`) |
 
-### Step 5: Done
+### Step 6: Done
 
 - Your app is live at `http://<your-subdomain>.duckdns.org`
 - Every push to `main` in the API or Web repo triggers automatic deployment
