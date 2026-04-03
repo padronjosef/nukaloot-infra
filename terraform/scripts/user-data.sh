@@ -14,7 +14,7 @@ fi
 
 # --- Install Docker ---
 apt-get update -y
-apt-get install -y ca-certificates curl gnupg awscli jq
+apt-get install -y ca-certificates curl gnupg awscli jq dnsutils
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
@@ -83,8 +83,20 @@ INTERNAL_API_URL=http://api:3000
 ENV
 chown ubuntu:ubuntu "$APP_DIR/game-price-infra/.env"
 
-# --- DuckDNS update ---
-curl -s "https://www.duckdns.org/update?domains=${duckdns_domain}&token=$DUCKDNS_TOKEN&ip="
+# --- DuckDNS update and wait for DNS propagation ---
+MY_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+curl -s "https://www.duckdns.org/update?domains=${duckdns_domain}&token=$DUCKDNS_TOKEN&ip=$MY_IP"
+
+# Wait until DNS resolves to this instance's IP
+for i in $(seq 1 30); do
+  RESOLVED=$(dig +short ${duckdns_domain}.duckdns.org @8.8.8.8 2>/dev/null)
+  if [ "$RESOLVED" = "$MY_IP" ]; then
+    echo "DNS propagated: ${duckdns_domain}.duckdns.org -> $MY_IP"
+    break
+  fi
+  echo "Waiting for DNS propagation... (attempt $i/30, got: $RESOLVED)"
+  sleep 10
+done
 
 # Cron jobs — DuckDNS (every 5 min) + cert renewal (twice daily)
 cat <<'CRON' | crontab -
