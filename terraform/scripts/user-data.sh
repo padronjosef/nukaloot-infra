@@ -89,30 +89,25 @@ curl -s "https://www.duckdns.org/update?domains=${duckdns_domain}&token=$DUCKDNS
 # Cron jobs — DuckDNS (every 5 min) + cert renewal (twice daily)
 cat <<'CRON' | crontab -
 */5 * * * * DUCKDNS_TOKEN=$(aws secretsmanager get-secret-value --secret-id '${duckdns_secret_id}' --region '${aws_region}' --query SecretString --output text) && curl -s "https://www.duckdns.org/update?domains=${duckdns_domain}&token=$DUCKDNS_TOKEN&ip=" > /dev/null 2>&1
-0 0,12 * * * certbot renew --quiet --deploy-hook 'cd /opt/game-price-finder/game-price-infra && docker compose -f docker-compose.prod.yml exec nginx nginx -s reload'
+0 0,12 * * * cd /opt/game-price-finder/game-price-infra && docker compose -f docker-compose.prod.yml stop nginx && certbot renew --quiet && docker compose -f docker-compose.prod.yml start nginx
 CRON
 
 # --- SSL setup ---
 apt-get install -y certbot
-mkdir -p /var/www/certbot /etc/letsencrypt
+mkdir -p /etc/letsencrypt
 
-# --- Start services (HTTP-only first, needed for certbot challenge) ---
-cd "$APP_DIR/game-price-infra"
-sudo -u ubuntu docker compose -f docker-compose.prod.yml up -d --build
-
-# Wait for nginx to be ready
-sleep 5
-
-# --- Get SSL certificate ---
-certbot certonly --webroot \
-  -w /var/www/certbot \
+# --- Get SSL certificate (standalone — before starting containers) ---
+certbot certonly --standalone \
   -d "${duckdns_domain}.duckdns.org" \
   --non-interactive \
   --agree-tos \
   --register-unsafely-without-email
 
-# --- Switch nginx to HTTPS config ---
+# --- Generate HTTPS nginx config ---
 export DUCKDNS_DOMAIN="${duckdns_domain}"
 envsubst '$$DUCKDNS_DOMAIN' < "$APP_DIR/game-price-infra/nginx/nginx.conf.template" > "$APP_DIR/game-price-infra/nginx/nginx.conf"
-docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
+
+# --- Start services with HTTPS ---
+cd "$APP_DIR/game-price-infra"
+sudo -u ubuntu docker compose -f docker-compose.prod.yml up -d --build
 
