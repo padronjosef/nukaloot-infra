@@ -108,6 +108,7 @@ DB_USERNAME=postgres
 DB_PASSWORD=$DB_PASSWORD
 DB_NAME=game_prices
 INTERNAL_API_URL=http://api:3000
+DB_SSL=true
 ENV
 chown ubuntu:ubuntu "$APP_DIR/game-price-infra/.env"
 
