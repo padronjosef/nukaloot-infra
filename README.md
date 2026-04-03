@@ -73,7 +73,7 @@ EC2 has `prevent_destroy` lifecycle and `ignore_changes` on ami/user_data. AMI i
 ```bash
 cd terraform
 ./setup.sh                    # One-time: create S3 state bucket
-# Create terraform.tfvars with duckdns_domain and duckdns_token
+# Create terraform.tfvars with domain and ami_id
 terraform init
 terraform apply -var="ssh_public_key_path=/path/to/key.pub"
 ```
