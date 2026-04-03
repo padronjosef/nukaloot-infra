@@ -3,11 +3,24 @@ set -e
 
 APP_DIR="/opt/game-price-finder"
 SERVICE="$1"
+ENV_FILE="$APP_DIR/game-price-infra/.env"
 
 if [ -z "$SERVICE" ]; then
   echo "Usage: deploy.sh <api|web|infra|all>"
   exit 1
 fi
+
+# Read DOMAIN from .env file (single source of truth)
+if [ -f "$ENV_FILE" ]; then
+  export DOMAIN=$(grep -oP '(?<=WEB_APP_DOMAIN=).+' "$ENV_FILE" || echo "")
+fi
+
+regenerate_nginx() {
+  if [ -n "$DOMAIN" ] && [ -f "$APP_DIR/game-price-infra/nginx/nginx.conf.template" ]; then
+    envsubst '$$DOMAIN' < "$APP_DIR/game-price-infra/nginx/nginx.conf.template" > "$APP_DIR/game-price-infra/nginx/nginx.conf"
+    echo "Nginx config regenerated for $DOMAIN"
+  fi
+}
 
 cd "$APP_DIR"
 
@@ -28,13 +41,7 @@ case "$SERVICE" in
   infra)
     echo "Deploying Infra..."
     cd game-price-infra && git checkout -- . && git pull origin main
-    # Re-generate HTTPS nginx config
-    export DOMAIN=$(grep -oP '(?<=server_name )[^;]+' nginx/nginx.conf.template 2>/dev/null || echo "")
-    if [ -d /etc/letsencrypt/live ]; then
-      DOMAIN=$(ls /etc/letsencrypt/live/ | head -1)
-      export DOMAIN
-      envsubst '$$DOMAIN' < nginx/nginx.conf.template > nginx/nginx.conf
-    fi
+    regenerate_nginx
     docker compose -f docker-compose.prod.yml up -d --build
     ;;
   all)
@@ -42,11 +49,7 @@ case "$SERVICE" in
     cd game-price-api && git pull origin main && cd ..
     cd game-price-web && git pull origin main && cd ..
     cd game-price-infra && git checkout -- . && git pull origin main
-    if [ -d /etc/letsencrypt/live ]; then
-      DOMAIN=$(ls /etc/letsencrypt/live/ | head -1)
-      export DOMAIN
-      envsubst '$$DOMAIN' < nginx/nginx.conf.template > nginx/nginx.conf
-    fi
+    regenerate_nginx
     docker compose -f docker-compose.prod.yml up -d --build
     ;;
   *)
