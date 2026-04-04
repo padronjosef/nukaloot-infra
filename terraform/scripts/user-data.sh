@@ -61,15 +61,11 @@ CW_CONFIG
   -a fetch-config -m ec2 \
   -c file:/opt/aws/amazon-cloudwatch-agent/etc/config.json -s
 
-# --- SSH key for GitHub (from Secrets Manager) ---
-GITHUB_DEPLOY_KEY=$(aws secretsmanager get-secret-value \
-  --secret-id "${github_deploy_secret_id}" \
-  --region "${aws_region}" \
-  --query SecretString \
-  --output text)
-
+# --- SSH key for GitHub ---
 mkdir -p /home/ubuntu/.ssh
-echo "$GITHUB_DEPLOY_KEY" > /home/ubuntu/.ssh/github_deploy
+cat <<'DEPLOY_KEY' > /home/ubuntu/.ssh/github_deploy
+${github_deploy_key}
+DEPLOY_KEY
 chmod 600 /home/ubuntu/.ssh/github_deploy
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 

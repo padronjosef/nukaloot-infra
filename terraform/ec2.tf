@@ -9,7 +9,7 @@ resource "tls_private_key" "github_deploy" {
   algorithm = "ED25519"
 }
 
-# IAM role so EC2 can read secrets from Secrets Manager
+# IAM role so EC2 can push CloudWatch logs
 resource "aws_iam_role" "ec2_app" {
   name = "game-price-ec2-role"
 
@@ -23,20 +23,13 @@ resource "aws_iam_role" "ec2_app" {
   })
 }
 
-resource "aws_iam_role_policy" "ec2_secrets" {
-  name = "read-secrets"
+resource "aws_iam_role_policy" "ec2_logs" {
+  name = "cloudwatch-logs"
   role = aws_iam_role.ec2_app.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      {
-        Effect   = "Allow"
-        Action   = ["secretsmanager:GetSecretValue"]
-        Resource = [
-          aws_secretsmanager_secret.github_deploy_key.arn,
-        ]
-      },
       {
         Effect = "Allow"
         Action = [
@@ -64,9 +57,8 @@ resource "aws_instance" "app" {
   iam_instance_profile   = aws_iam_instance_profile.ec2_app.name
 
   user_data = templatefile("${path.module}/scripts/user-data.sh", {
-    github_deploy_secret_id = aws_secretsmanager_secret.github_deploy_key.id
-    aws_region              = var.aws_region
-    domain                  = var.domain
+    github_deploy_key = tls_private_key.github_deploy.private_key_openssh
+    domain            = var.domain
   })
 
   root_block_device {
