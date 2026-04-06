@@ -26,6 +26,9 @@ regenerate_nginx() {
 
 cd "$APP_DIR/nukaloot-infra"
 
+# Free space before pulling new images
+docker image prune -af --filter "until=1h"
+
 case "$SERVICE" in
   api)
     echo "Deploying API..."
@@ -58,8 +61,5 @@ case "$SERVICE" in
     exit 1
     ;;
 esac
-
-# Clean up old images
-docker image prune -f
 
 echo "Deploy complete."
