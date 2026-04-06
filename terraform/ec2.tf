@@ -13,6 +13,7 @@ resource "aws_instance" "app" {
   ami                         = var.ami_id
   instance_type               = "t4g.micro"
   key_name                    = aws_key_pair.deployer.key_name
+  iam_instance_profile        = aws_iam_instance_profile.ec2.name
   vpc_security_group_ids      = [aws_security_group.ec2.id]
   associate_public_ip_address = true
 

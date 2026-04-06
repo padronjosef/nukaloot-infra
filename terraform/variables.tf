@@ -14,6 +14,11 @@ variable "ami_id" {
   type        = string
 }
 
+variable "alert_email" {
+  description = "Email address for CloudWatch alarm notifications"
+  type        = string
+}
+
 variable "ssh_public_key_path" {
   description = "Path to the SSH public key for EC2 access"
   type        = string
