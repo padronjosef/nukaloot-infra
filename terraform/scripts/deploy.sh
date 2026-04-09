@@ -26,8 +26,8 @@ regenerate_nginx() {
 
 cd "$APP_DIR/nukaloot-infra"
 
-# Free space before pulling new images
-docker image prune -af
+# Free space before pulling new images (images, build cache, dangling volumes)
+docker system prune -af
 
 case "$SERVICE" in
   api)
