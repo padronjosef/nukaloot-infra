@@ -37,6 +37,9 @@ services:
     restart: unless-stopped
     environment:
       INTERNAL_API_URL: http://api:3000
+      # The address browsers use. Behind nginx the container only knows its own
+      # internal one, and redirects built from that sent people to localhost.
+      WEB_APP_DOMAIN: ${WEB_APP_DOMAIN:?set WEB_APP_DOMAIN in .env}
       API_JWT_SECRET: ${API_JWT_SECRET:?set API_JWT_SECRET in .env}
       ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:?set ADMIN_SESSION_SECRET in .env}
       # Empty means the "Continue with Google" button simply is not offered.
