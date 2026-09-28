@@ -33,6 +33,19 @@ services:
       DB_NAME: game_prices
       CORS_ORIGIN: "*"
       CHOKIDAR_USEPOLLING: "true"
+      # Shared with the web container; the analytics and user endpoints
+      # refuse any call that does not carry it.
+      API_JWT_SECRET: ${API_JWT_SECRET:-dev-api-jwt-secret-at-least-32-chars}
+      ANALYTICS_VISITOR_SALT: ${ANALYTICS_VISITOR_SALT:-dev-visitor-salt}
+      SEARCH_LOG_IP_RETENTION_DAYS: ${SEARCH_LOG_IP_RETENTION_DAYS:-7}
+      SEARCH_LOG_SWEEP_DAY: ${SEARCH_LOG_SWEEP_DAY:-0}
+      SEARCH_LOG_SWEEP_HOUR: ${SEARCH_LOG_SWEEP_HOUR:-4}
+      UNVERIFIED_ACCOUNT_DAYS: ${UNVERIFIED_ACCOUNT_DAYS:-7}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      # Only ever used when the users table is empty.
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@nukaloot.local}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-changeme-in-dev}
     depends_on:
       db:
         condition: service_healthy
@@ -50,6 +63,12 @@ services:
     environment:
       INTERNAL_API_URL: http://api:3000
       PORT: "3003"
+      API_JWT_SECRET: ${API_JWT_SECRET:-dev-api-jwt-secret-at-least-32-chars}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-dev-session-secret-at-least-32-chars}
+      # Empty means the "Continue with Google" button simply is not offered.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
       WATCHPACK_POLLING: "true"
       NEXT_TURBO_POLL_INTERVAL: "1000"
     depends_on:

@@ -16,7 +16,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 256M
 
   nginx:
     image: nginx:alpine
@@ -37,12 +37,18 @@ services:
     restart: unless-stopped
     environment:
       INTERNAL_API_URL: http://api:3000
+      API_JWT_SECRET: ${API_JWT_SECRET:?set API_JWT_SECRET in .env}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:?set ADMIN_SESSION_SECRET in .env}
+      # Empty means the "Continue with Google" button simply is not offered.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
     depends_on:
       - api
     deploy:
       resources:
         limits:
-          memory: 192M
+          memory: 384M
 
   api:
     image: ghcr.io/padronjosef/nukaloot-api:latest
@@ -55,13 +61,25 @@ services:
       DB_PASSWORD: postgres
       DB_NAME: game_prices
       DB_SSL: "false"
+      API_JWT_SECRET: ${API_JWT_SECRET:?set API_JWT_SECRET in .env}
+      # Changing it re-buckets every visitor, so leave it alone once set.
+      ANALYTICS_VISITOR_SALT: ${ANALYTICS_VISITOR_SALT:?set ANALYTICS_VISITOR_SALT in .env}
+      SEARCH_LOG_IP_RETENTION_DAYS: ${SEARCH_LOG_IP_RETENTION_DAYS:-7}
+      SEARCH_LOG_SWEEP_DAY: ${SEARCH_LOG_SWEEP_DAY:-0}
+      SEARCH_LOG_SWEEP_HOUR: ${SEARCH_LOG_SWEEP_HOUR:-4}
+      UNVERIFIED_ACCOUNT_DAYS: ${UNVERIFIED_ACCOUNT_DAYS:-7}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      # Seeds the first admin, and only while the users table is empty.
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 768M
 
 volumes:
   pgdata:

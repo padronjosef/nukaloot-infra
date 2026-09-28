@@ -56,6 +56,31 @@ Source code is mounted as volumes. Changes to `nukaloot-api/src/` and `nukaloot-
 
 `deploy.sh` reads `WEB_APP_DOMAIN` from `.env` for nginx config regeneration.
 
+The admin panel needs these in `.env` too. Copy `.env.example` and fill them in —
+`docker-compose.prod.yml` refuses to start without the first three.
+
+| Variable | Used by | What it is |
+|----------|---------|------------|
+| `ANALYTICS_ADMIN_KEY` | web + api | Shared secret. The analytics and user endpoints reject any call without it, so reaching the API is not enough. |
+| `ADMIN_SESSION_SECRET` | web | Signs the admin session cookie. At least 32 characters. Changing it signs everyone out. |
+| `ANALYTICS_VISITOR_SALT` | api | Salts the visitor hash. Changing it re-buckets every visitor, so set it once and leave it. |
+| `BOOTSTRAP_ADMIN_EMAIL` | api | Seeds the first admin — **only while the users table is empty**. Safe to leave set. |
+| `BOOTSTRAP_ADMIN_PASSWORD` | api | That admin's password. Change it from the panel after the first sign-in. |
+
+Generate the secrets with `openssl rand -hex 32`.
+
+## Admin panel
+
+`/admin` is signed-in only. It shows what visitors search for and where from;
+`/admin/users` manages who else gets in. Accounts live in the database with a
+role of `admin` (analytics plus user management) or `operator` (analytics only).
+
+Country and IP come from Cloudflare's `CF-Connecting-IP` and `CF-IPCountry`
+headers, which nginx passes through untouched — so **the DNS record has to stay
+proxied (orange cloud)**. Grey-clouded, the IP recorded is Cloudflare's edge
+rather than the visitor's, and the country falls back to a lookup against
+ipapi.co.
+
 ## AWS Infrastructure (Terraform)
 
 | Resource | Spec |
